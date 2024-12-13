@@ -14,5 +14,5 @@ cd nixos-machines
 ### Install NixOS using the flake:
 
 ```bash
-nixos-install --flake .#<hostname>
+sudo nixos-rebuild boot --flake  .#<hostname>
 ```
