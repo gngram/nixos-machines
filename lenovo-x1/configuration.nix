@@ -6,12 +6,10 @@
 
 {
   imports =
-    [ # Include the results of the hardware scan.
+    [ 
       ./hardware-configuration.nix
     ];
 
-  security.apparmor.enable = true;
-  # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelParams = ["systemd.debug_shell=1"];
@@ -22,11 +20,8 @@
  
   hardware.bluetooth.enable = true; # enables support for Bluetooth
   hardware.bluetooth.powerOnBoot = true;
-
-  networking.hostName = "ganga-x1g11"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-
-  # Enable networking
+  
+  networking.hostName = "gng-lenx1"; # Define your hostname.
   networking.networkmanager.enable = true;
 
   # Set your time zone.
@@ -49,10 +44,10 @@
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
-
   # Enable the GNOME Desktop Environment.
   #services.xserver.displayManager.gdm.enable = true;
   #services.xserver.desktopManager.gnome.enable = true;
+
   services.displayManager.sddm.enable = true;
   services.xserver.desktopManager.plasma5.enable = true;
   
@@ -104,17 +99,23 @@
     meld
     vim
     vscode
-    wget
   ];
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
 
   networking.firewall.allowPing = true;
+  # Open ports in the firewall.
   networking.firewall.allowedTCPPorts = [ 22 445 139 8080 ];
   networking.firewall.allowedUDPPorts = [ 137 138 8080 ];
   # networking.firewall.enable = false;
 
-  system.stateVersion = "24.05";
+  # This value determines the NixOS release from which the default
+  # settings for stateful data, like file locations and database versions
+  # on your system were taken. It‘s perfectly fine and recommended to leave
+  # this value at the release version of the first install of this system.
+  # Before changing this value read the documentation for this option
+  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
+  system.stateVersion = "24.11"; # Did you read the comment?
 
 }
