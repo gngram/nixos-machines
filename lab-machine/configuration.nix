@@ -53,11 +53,17 @@
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
+  #xfce
+  services.displayManager.defaultSession = "xfce";
+  services.xserver.desktopManager.xfce.enable = true;
+    
+
   # Enable the GNOME Desktop Environment.
-  # services.xserver.displayManager.gdm.enable = true;
-  # services.xserver.desktopManager.gnome.enable = true;
+  #services.xserver.displayManager.gdm.enable = true;
+  #services.xserver.desktopManager.gnome.enable = true;
 
   # Plasma6 and wayland
+  /*
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
@@ -67,6 +73,7 @@
     kwallet-pam
     kwalletmanager
   ];
+  */
   
   # Configure keymap in X11
   services.xserver = {
@@ -92,15 +99,32 @@
     #jack.enable = true;
   };
 
+  hardware = {
+    graphics = {
+      enable = true;
+    };
+
+    nvidia = {
+        modesetting.enable = true;
+        powerManagement.enable = false;
+        powerManagement.finegrained = false;
+        open = false;
+        nvidiaSettings = true;
+        package = config.boot.kernelPackages.nvidiaPackages.legacy_535;
+    };
+  };
+
+  boot.initrd.kernelModules = [ "nvidia" ];
+  boot.extraModulePackages = [ config.boot.kernelPackages.nvidia_x11_legacy535 ];
+  nixpkgs.config.allowUnfreePredicate =  (pkg: false);
+
   services.xserver.videoDrivers = [ "nvidia" ];
-  hardware.opengl.enable = true;  
-  hardware.nvidia.modesetting.enable = true;
   
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.gangaram = {
     isNormalUser = true;
     description = "Ganga Ram";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "disk"];
     packages = with pkgs; [
       git
       vim
@@ -114,6 +138,9 @@
       teams-for-linux
       notepadqq
       meld
+    ];
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfyjcPGIRHEtXZgoF7wImA5gEY6ytIfkBeipz4lwnj6 Ganga.Ram@tii.ae"
     ];
   };
 
@@ -137,6 +164,8 @@
   
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.nvidia.acceptLicense = true;
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
@@ -149,6 +178,10 @@
     rustc
     cargo
     firefox
+    wget
+    qtcreator
+    google-chrome  
+    /*
     plasma-theme-switcher
     kdePackages.breeze
     kdePackages.breeze-grub
@@ -160,12 +193,28 @@
     kdePackages.gwenview
     kdePackages.kalk
     kdePackages.yakuake
-    wget
+    */
   ];
 
-  # Enable the OpenSSH daemon.
-  services.openssh.enable = true;
-  services.openssh.settings.X11Forwarding = true;
+  systemd.targets = {
+    sleep.enable = false;
+    suspend.enable = false;
+    hibernate.enable = false;
+    hybrid-sleep.enable = false;
+  };
+  services.tailscale.enable = true;
+
+  systemd.services.sshd = {
+    after = [ "multi-user.target" ];
+    wants = [ "multi-user.target" ];
+  };
+
+  services.openssh = {
+    enable = true;
+    settings.PasswordAuthentication = true;
+    settings.KbdInteractiveAuthentication = false;
+    settings.PermitRootLogin = "no";
+  };
   
   networking.firewall = {
     # enable = false;
