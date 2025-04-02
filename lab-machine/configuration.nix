@@ -53,7 +53,7 @@
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
-  #xfce
+  # Enable xfce
   services.displayManager.defaultSession = "xfce";
   services.xserver.desktopManager.xfce.enable = true;
     
@@ -171,9 +171,9 @@
   # $ nix search wget
   environment.systemPackages = with pkgs; [
     kate
-    meld
-    vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+    vim 
     git
+    gitFull
     nettools
     rustc
     cargo
@@ -181,6 +181,8 @@
     wget
     qtcreator
     google-chrome  
+    plantuml
+    graphviz
     /*
     plasma-theme-switcher
     kdePackages.breeze

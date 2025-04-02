@@ -10,11 +10,9 @@
       ./hardware-configuration.nix
     ];
 
-  security.apparmor.enable = true;
-  
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelParams = ["systemd.debug_shell=1"];
+  #boot.kernelParams = ["systemd.debug_shell=1"];
   boot.binfmt.emulatedSystems = [
     "riscv64-linux"
     "aarch64-linux"
@@ -23,6 +21,7 @@
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
+  services.tailscale.enable = true;
 
   networking.hostName = "Vatapi";
   # networking.wireless.enable = true;
@@ -51,11 +50,17 @@
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
+  # Enable xfce
+  services.displayManager.defaultSession = "xfce";
+  services.xserver.desktopManager.xfce.enable = true;
+
   # Enable the GNOME Desktop Environment.
   #services.xserver.displayManager.gdm.enable = true;
   #services.xserver.desktopManager.gnome.enable = true;
-  services.displayManager.sddm.enable = true;
-  services.xserver.desktopManager.plasma5.enable = true;
+
+  # Enable Plasma
+  #services.displayManager.sddm.enable = true;
+  #services.xserver.desktopManager.plasma5.enable = true;
   
   # Configure keymap in X11
   services.xserver.xkb = {
@@ -91,13 +96,15 @@
     description = "Ganga Ram";
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [
-      firefox
       git
       vim
       gtkterm
       binutils
       rustc
       cargo
+    ];
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfyjcPGIRHEtXZgoF7wImA5gEY6ytIfkBeipz4lwnj6 Ganga.Ram@tii.ae"
     ];
   };
 
@@ -106,6 +113,7 @@
   environment.systemPackages = with pkgs; [
     vim
     git
+    gitFull
     nettools
     rustc
     cargo
@@ -113,7 +121,12 @@
     meld
     vim
     vscode
-  #  wget
+    qtcreator
+    google-chrome
+    slack
+    teams-for-linux
+    plantuml
+    graphviz
   ];
 
   # Enable the OpenSSH daemon.
@@ -121,7 +134,7 @@
 
   networking.firewall.allowPing = true;
   networking.firewall.allowedTCPPorts = [ 22 445 139 8080 ];
-  networking.firewall.allowedUDPPorts = [ 137 138 8080 ];
+  networking.firewall.allowedUDPPorts = [ 137 138 8080 config.services.tailscale.port ];
  
  system.stateVersion = "24.11";
 
