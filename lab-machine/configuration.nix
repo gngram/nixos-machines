@@ -52,11 +52,23 @@
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
+  services.xscreensaver.enable = false;
+
+  #services.xserver.displayManager.lightdm.greeters.enso.enable = true;
+  #services.xserver.desktopManager.mate.enable = true;
+  #services.xserver.windowManager.i3.enable = true;
+  #environment.mate.excludePackages = [ pkgs.mate.mate-terminal pkgs.mate.pluma ];
 
   # Enable xfce
+  services.displayManager.enable = true;
   services.displayManager.defaultSession = "xfce";
   services.xserver.desktopManager.xfce.enable = true;
-    
+  services.xserver.excludePackages = [ pkgs.xterm ];
+  
+  # Cosmic buggy
+  # services.desktopManager.cosmic.enable = true;
+  #services.desktopManager.cosmic.xwayland.enable = true;
+  #services.displayManager.cosmic-greeter.enable = true; 
 
   # Enable the GNOME Desktop Environment.
   #services.xserver.displayManager.gdm.enable = true;
@@ -88,7 +100,7 @@
 
   # Enable sound with pipewire.
   #sound.enable = true;
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -98,6 +110,7 @@
     # If you want to use JACK applications, uncomment this
     #jack.enable = true;
   };
+
 
   hardware = {
     graphics = {
@@ -132,12 +145,14 @@
       binutils
       rustc
       cargo
-      kate
       vscode-fhs
       slack
       teams-for-linux
       notepadqq
       meld
+      kdePackages.konsole
+      pkgs.whitesur-gtk-theme
+      pkgs.whitesur-icon-theme
     ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfyjcPGIRHEtXZgoF7wImA5gEY6ytIfkBeipz4lwnj6 Ganga.Ram@tii.ae"
@@ -153,7 +168,7 @@
              hostname 192.168.1.131
         host ghaf-host
              user root
-             hostname 192.168.101.2
+             hostname 192.168.100.2
              proxyjump ghaf-net
       '';
     };
@@ -170,7 +185,6 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    kate
     vim 
     git
     gitFull
@@ -183,6 +197,9 @@
     google-chrome  
     plantuml
     graphviz
+    xfce.xfce4-panel
+    xfce.thunar
+    xfce.xfce4-settings
     /*
     plasma-theme-switcher
     kdePackages.breeze
@@ -225,6 +242,6 @@
   	allowedUDPPorts = [ 137 138 8080 5201  config.services.tailscale.port ];
   };
 
-  system.stateVersion = "24.11";
+  system.stateVersion = "25.05";
 
 }
