@@ -5,10 +5,12 @@
 { config, pkgs, ... }:
 
 {
-  imports =
+  /*
+   imports =
     [
       ./hardware-configuration.nix
     ];
+  */
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -72,7 +74,7 @@
   services.printing.enable = true;
 
   # Enable sound with pipewire.
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;

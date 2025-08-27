@@ -11,16 +11,17 @@
       lenovo-x1 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux"; 
         modules = [
-          ./lenovo-x1/configuration.nix 
+          ./modules
+          ./targets/lenovo-x1 
         ];
       };
 
       # Configuration for the second platform
-      lab-machine = nixpkgs.lib.nixosSystem {
+      ryzen-threadripper = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux"; 
         modules = [
-          ./lab-machine/configuration.nix 
-          ./lab-machine/hardware-configuration.nix
+          ./modules
+          ./targets/ryzen-threadripper 
         ];
       };
     };
