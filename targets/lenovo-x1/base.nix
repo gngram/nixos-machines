@@ -5,13 +5,6 @@
 { config, pkgs, ... }:
 
 {
-  /*
-   imports =
-    [
-      ./hardware-configuration.nix
-    ];
-  */
-
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   #boot.kernelParams = ["systemd.debug_shell=1"];
@@ -19,6 +12,8 @@
     "riscv64-linux"
     "aarch64-linux"
   ];
+
+  programs.nix-ld.enable = true;
  
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
@@ -113,6 +108,7 @@
   nix.settings.trusted-users = ["root" "@wheel"];
   nixpkgs.config.allowUnfree = true;
   environment.systemPackages = with pkgs; [
+    devenv
     vim
     git
     gitFull
@@ -121,7 +117,6 @@
     cargo
     firefox
     meld
-    vim
     vscode
     qtcreator
     google-chrome

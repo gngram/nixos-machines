@@ -5,11 +5,6 @@
 { config, pkgs, lib, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
-
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -18,7 +13,10 @@
     "riscv64-linux"
     "aarch64-linux"
   ];
- 
+
+  #development env
+  programs.nix-ld.enable = true;
+
   fileSystems."/work" = {
     device = "/dev/disk/by-uuid/e25724ed-f7a4-4e63-ac52-bb2f6380c810";
     fsType = "ext4";
@@ -201,6 +199,7 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    devenv
     vim 
     git
     gitFull
