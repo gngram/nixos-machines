@@ -1,0 +1,367 @@
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From 9e3e8c6aa483900605ece44b12df8fc9d42d2aff Mon Sep 17 00:00:00 2001
+From: Yuri Nesterov <yuriy.nesterov@unikie.com>
+Date: Fri, 2 May 2025 20:43:32 +0300
+Subject: [PATCH] Add security context indicator
+
+---
+ cosmic-comp-config/src/lib.rs         | 24 ++++++++++
+ src/backend/render/mod.rs             | 31 +++++++++++++
+ src/shell/grabs/moving.rs             | 64 +++++++++++++++++++++------
+ src/shell/layout/floating/mod.rs      | 33 ++++++++++++--
+ src/wayland/handlers/xdg_shell/mod.rs | 45 +++++++++++++++++++
+ 5 files changed, 181 insertions(+), 16 deletions(-)
+
+diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
+index 0463807..beb7e0c 100644
+--- a/cosmic-comp-config/src/lib.rs
++++ b/cosmic-comp-config/src/lib.rs
+@@ -53,6 +53,7 @@ pub struct CosmicCompConfig {
+     /// The threshold before windows snap themselves to output edges
+     pub edge_snap_threshold: u32,
+     pub accessibility_zoom: ZoomConfig,
++    pub security_context: SecurityContextConfig,
+ }
+ 
+ impl Default for CosmicCompConfig {
+@@ -87,6 +88,7 @@ impl Default for CosmicCompConfig {
+             xwayland_eavesdropping: XwaylandEavesdropping::default(),
+             edge_snap_threshold: 0,
+             accessibility_zoom: ZoomConfig::default(),
++            security_context: SecurityContextConfig::default(),
+         }
+     }
+ }
+@@ -186,3 +188,25 @@ pub enum XwaylandDescaling {
+     #[default]
+     Fractional,
+ }
++
++#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
++pub struct SecurityContextRule {
++    pub app_id: String,
++    pub sandbox_engine: String,
++    pub border_color: [f32; 3],
++}
++
++#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
++pub struct SecurityContextConfig {
++    pub border_size: u8,
++    pub rules: Vec<SecurityContextRule>,
++}
++
++impl Default for SecurityContextConfig {
++    fn default() -> SecurityContextConfig {
++        SecurityContextConfig {
++            border_size: 4,
++            rules: Vec::new(),
++        }
++    }
++}
+diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
+index 348525e..ac629b1 100644
+--- a/src/backend/render/mod.rs
++++ b/src/backend/render/mod.rs
+@@ -127,6 +127,13 @@ pub enum Usage {
+     FocusIndicator,
+     PotentialGroupIndicator,
+     SnappingIndicator,
++    SecurityContextIndicator,
++}
++
++#[derive(Debug, Clone, PartialEq)]
++pub struct SecurityContextIndicatorSettings {
++    pub border_color: [f32; 3],
++    pub border_size: u8,
+ }
+ 
+ #[derive(Clone)]
+@@ -212,6 +219,30 @@ impl IndicatorShader {
+         )
+     }
+ 
++    pub fn focus_element_with_radius<R: AsGlowRenderer>(
++        renderer: &R,
++        key: impl Into<Key>,
++        mut element_geo: Rectangle<i32, Local>,
++        thickness: u8,
++        alpha: f32,
++        active_window_hint: [f32; 3],
++        radius: u8,
++    ) -> PixelShaderElement {
++        let t = thickness as i32;
++        element_geo.loc -= (t, t).into();
++        element_geo.size += (t * 2, t * 2).into();
++
++        IndicatorShader::element(
++            renderer,
++            key,
++            element_geo,
++            thickness,
++            radius,
++            alpha,
++            active_window_hint,
++        )
++    }
++
+     pub fn element<R: AsGlowRenderer>(
+         renderer: &R,
+         key: impl Into<Key>,
+diff --git a/src/shell/grabs/moving.rs b/src/shell/grabs/moving.rs
+index 5b3c797..69fd1fa 100644
+--- a/src/shell/grabs/moving.rs
++++ b/src/shell/grabs/moving.rs
+@@ -2,7 +2,7 @@
+ 
+ use crate::{
+     backend::render::{
+-        cursor::CursorState, element::AsGlowRenderer, BackdropShader, IndicatorShader, Key, Usage,
++        cursor::CursorState, element::AsGlowRenderer, BackdropShader, IndicatorShader, Key, Usage, SecurityContextIndicatorSettings,
+     },
+     shell::{
+         element::{
+@@ -47,7 +47,6 @@ use std::{
+     sync::{atomic::Ordering, Mutex},
+     time::Instant,
+ };
+-
+ use super::{GrabStartData, ReleaseMode};
+ 
+ pub type SeatMoveGrabState = Mutex<Option<MoveGrabState>>;
+@@ -75,6 +74,7 @@ impl MoveGrabState {
+         CosmicMappedRenderElement<R>: RenderElement<R>,
+         I: From<CosmicMappedRenderElement<R>>,
+     {
++
+         let scale = if self.previous == ManagedLayer::Tiling {
+             0.6 + ((1.0
+                 - (Instant::now().duration_since(self.start).as_millis() as f64
+@@ -108,22 +108,58 @@ impl MoveGrabState {
+             + self.window_offset
+             - scaling_offset;
+ 
++        let mut secctx_element = None;
++        let mut secctx_border_size = 0;
++        if self.window.is_window() {
++            let surface = self.window.active_window();
++            if let Some(secctx_settings) = surface.user_data().get::<SecurityContextIndicatorSettings>() {
++                secctx_border_size = secctx_settings.border_size;
++                secctx_element = Some(
++                    CosmicMappedRenderElement::from(IndicatorShader::focus_element(
++                        renderer,
++                        Key::Window(Usage::SecurityContextIndicator, self.window.key()),
++                        Rectangle::new(
++                            render_location,
++                            self.window
++                                .geometry()
++                                .size
++                                .to_f64()
++                                .upscale(scale)
++                                .to_i32_round(),
++                        )
++                        .as_local(),
++                        secctx_settings.border_size,
++                        alpha,
++                        secctx_settings.border_color,
++                    ))
++                    .into(),
++                );
++            }
++        }
++
+         let active_window_hint = crate::theme::active_window_hint(theme);
+         let focus_element = if self.indicator_thickness > 0 {
++            let mut indicator_geometry = Rectangle::new(
++                render_location,
++                self.window
++                    .geometry()
++                    .size
++                    .to_f64()
++                    .upscale(scale)
++                    .to_i32_round(),
++            ).as_local();
++            let mut radius = self.indicator_thickness * 2;
++            if secctx_border_size > self.indicator_thickness {
++                let size = (secctx_border_size - self.indicator_thickness) as i32;
++                indicator_geometry.loc -= (size, size).into();
++                indicator_geometry.size += (size * 2, size * 2).into();
++                radius = secctx_border_size as u8 * 2;
++            }
+             Some(
+-                CosmicMappedRenderElement::from(IndicatorShader::focus_element(
++                CosmicMappedRenderElement::from(IndicatorShader::focus_element_with_radius(
+                     renderer,
+                     Key::Window(Usage::MoveGrabIndicator, self.window.key()),
+-                    Rectangle::new(
+-                        render_location,
+-                        self.window
+-                            .geometry()
+-                            .size
+-                            .to_f64()
+-                            .upscale(scale)
+-                            .to_i32_round(),
+-                    )
+-                    .as_local(),
++                    indicator_geometry,
+                     self.indicator_thickness,
+                     alpha,
+                     [
+@@ -131,6 +167,7 @@ impl MoveGrabState {
+                         active_window_hint.green,
+                         active_window_hint.blue,
+                     ],
++                    radius,
+                 ))
+                 .into(),
+             )
+@@ -210,6 +247,7 @@ impl MoveGrabState {
+             })
+             .chain(p_elements)
+             .chain(focus_element)
++            .chain(secctx_element)
+             .chain(w_elements.into_iter().map(|elem| match elem {
+                 CosmicMappedRenderElement::Stack(stack) => {
+                     CosmicMappedRenderElement::GrabbedStack(
+diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
+index 7bf628d..6356705 100644
+--- a/src/shell/layout/floating/mod.rs
++++ b/src/shell/layout/floating/mod.rs
+@@ -24,7 +24,7 @@ use smithay::{
+ };
+ 
+ use crate::{
+-    backend::render::{element::AsGlowRenderer, IndicatorShader, Key, Usage},
++    backend::render::{element::AsGlowRenderer, IndicatorShader, Key, Usage, SecurityContextIndicatorSettings},
+     shell::{
+         element::{
+             resize_indicator::ResizeIndicator,
+@@ -1544,6 +1544,24 @@ impl FloatingLayout {
+                     .collect();
+             }
+ 
++            // Security context indicator
++            let mut secctx_border_size = 0;
++            if elem.is_window() {
++                let surface = elem.active_window();
++                if let Some(secctx_settings) = surface.user_data().get::<SecurityContextIndicatorSettings>() {
++                    secctx_border_size = secctx_settings.border_size;
++                    let element = IndicatorShader::focus_element(
++                        renderer,
++                        Key::Window(Usage::SecurityContextIndicator, elem.key()),
++                        geometry,
++                        secctx_settings.border_size,
++                        alpha,
++                        secctx_settings.border_color,
++                    );
++                    window_elements.insert(0, element.into());
++                }
++            }
++
+             if focused == Some(elem) && !elem.is_maximized(false) {
+                 if let Some((mode, resize)) = resize_indicator.as_mut() {
+                     let mut resize_geometry = geometry.clone();
+@@ -1571,10 +1589,18 @@ impl FloatingLayout {
+                 let active_window_hint = crate::theme::active_window_hint(theme);
+ 
+                 if indicator_thickness > 0 {
+-                    let element = IndicatorShader::focus_element(
++                    let mut indicator_geometry = geometry.clone();
++                    let mut radius = indicator_thickness * 2;
++                    if secctx_border_size > indicator_thickness {
++                        let size = (secctx_border_size - indicator_thickness) as i32;
++                        indicator_geometry.loc -= (size, size).into();
++                        indicator_geometry.size += (size * 2, size * 2).into();
++                        radius = secctx_border_size as u8 * 2;
++                    }
++                    let element = IndicatorShader::focus_element_with_radius(
+                         renderer,
+                         Key::Window(Usage::FocusIndicator, elem.key()),
+-                        geometry,
++                        indicator_geometry,
+                         indicator_thickness,
+                         alpha,
+                         [
+@@ -1582,6 +1608,7 @@ impl FloatingLayout {
+                             active_window_hint.green,
+                             active_window_hint.blue,
+                         ],
++                        radius,
+                     );
+                     window_elements.insert(0, element.into());
+                 }
+diff --git a/src/wayland/handlers/xdg_shell/mod.rs b/src/wayland/handlers/xdg_shell/mod.rs
+index 056e48f..a879487 100644
+--- a/src/wayland/handlers/xdg_shell/mod.rs
++++ b/src/wayland/handlers/xdg_shell/mod.rs
+@@ -5,8 +5,10 @@ use crate::{
+         element::CosmicWindow, grabs::ReleaseMode, CosmicMapped, CosmicSurface, ManagedLayer,
+         PendingWindow,
+     },
++    state::ClientState,
+     utils::prelude::*,
+     wayland::protocols::toplevel_info::{toplevel_enter_output, toplevel_enter_workspace},
++    backend::render::SecurityContextIndicatorSettings,
+ };
+ use smithay::{
+     delegate_xdg_shell,
+@@ -19,6 +21,7 @@ use smithay::{
+     reexports::{
+         wayland_protocols::xdg::shell::server::xdg_toplevel,
+         wayland_server::protocol::{wl_output::WlOutput, wl_seat::WlSeat},
++        wayland_server::Resource,
+     },
+     utils::{Logical, Point, Serial},
+     wayland::{
+@@ -47,7 +50,49 @@ impl XdgShellHandler for State {
+     fn new_toplevel(&mut self, surface: ToplevelSurface) {
+         let mut shell = self.common.shell.write().unwrap();
+         let seat = shell.seats.last_active().clone();
++
+         let window = CosmicSurface::from(surface);
++
++        // Get security context data
++        if let Some(client) = window.wl_surface().unwrap().client() {
++            let client_data = self
++                .common
++                .display_handle
++                .backend_handle()
++                .get_client_data(client.id().clone())
++                .ok();
++
++            if let Some(security_context) = client_data
++                .as_ref()
++                .and_then(|data| data.downcast_ref::<ClientState>())
++                .and_then(|data| data.security_context.as_ref()) {
++
++                // Try to find a security context rule by sandbox engine and appid
++                let sandbox_engine = security_context
++                    .sandbox_engine
++                    .as_deref()
++                    .unwrap_or_default();
++                let app_id = security_context.app_id.as_deref().unwrap_or_default();
++                let border_color = self
++                    .common.config.cosmic_conf.security_context.rules
++                    .iter()
++                    .find(|config| {
++                        config.sandbox_engine == sandbox_engine && config.app_id == app_id
++                    })
++                    .map(|config| config.border_color.clone());
++
++                if let Some(color) = border_color {
++
++                    // Add security context indicator settings to the user data
++                    let indicator = SecurityContextIndicatorSettings {
++                        border_color: color,
++                        border_size: self.common.config.cosmic_conf.security_context.border_size,
++                    };
++                    window.user_data().get_or_insert_threadsafe(|| indicator.clone());
++                }
++            }
++        }
++
+         shell.pending_windows.push(PendingWindow {
+             surface: window,
+             seat,
+-- 
+2.43.0

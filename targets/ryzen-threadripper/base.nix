@@ -24,7 +24,6 @@
   };
  
   boot.kernelModules = [ "kvm-amd" ];
-
   networking.hostName = "Atapi"; # Define your hostname.
 
   # Enable networking
@@ -38,7 +37,6 @@
 
   # Set your time zone.
   time.timeZone = "Asia/Dubai";
-
   # Select internationalisation properties.
   i18n.defaultLocale = "en_US.UTF-8";
 
@@ -55,7 +53,14 @@
   };
 
   services.displayManager.cosmic-greeter.enable = true;
-  services.desktopManager.cosmic.enable = true;
+  services.desktopManager.cosmic = {
+    enable = true;
+    xwayland.enable = true;
+  };
+  environment.cosmic.excludePackages = with pkgs; [
+   cosmic-edit
+  ];
+
   # Enable the X11 windowing system.
   #services.xserver.enable = true;
   #services.xscreensaver.enable = false;
@@ -99,11 +104,13 @@
   #  xkb.variant = "";
   #};
 
+ nixpkgs.overlays = [
+    (import ./../../overlays/overlays.nix)
+  ];
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
   #services.vscode-server.enable = true;
-
   # Enable sound with pipewire.
   #sound.enable = true;
   services.pulseaudio.enable = false;
@@ -125,7 +132,7 @@
 
     nvidia = {
         modesetting.enable = true;
-        powerManagement.enable = false;
+        powerManagement.enable = true;
         powerManagement.finegrained = false;
         open = false;
         nvidiaSettings = true;
@@ -146,6 +153,7 @@
     extraGroups = [ "networkmanager" "wheel" "disk"];
     packages = with pkgs; [
       gtkterm
+      ghostty
     ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfyjcPGIRHEtXZgoF7wImA5gEY6ytIfkBeipz4lwnj6 Ganga.Ram@tii.ae"
@@ -154,7 +162,7 @@
 
   programs = {
     ssh = {
-      startAgent = true;
+      #startAgent = true;
       extraConfig = ''
         host ghaf-net
              user root
