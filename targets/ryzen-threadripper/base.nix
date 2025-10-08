@@ -2,10 +2,10 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, lib, ... }:
+{ config, pkgs, ... }:
 
 {
-  # Bootloader.
+   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
@@ -54,10 +54,11 @@
     LC_TIME = "en_IN";
   };
 
+  services.displayManager.cosmic-greeter.enable = true;
+  services.desktopManager.cosmic.enable = true;
   # Enable the X11 windowing system.
   #services.xserver.enable = true;
-  services.xscreensaver.enable = false;
-  services.displayManager.enable = true;
+  #services.xscreensaver.enable = false;
 
   #services.xserver.displayManager.lightdm.greeters.enso.enable = true;
   #services.xserver.desktopManager.mate.enable = true;
@@ -65,34 +66,22 @@
   #environment.mate.excludePackages = [ pkgs.mate.mate-terminal pkgs.mate.pluma ];
 
   # Enable xfce
+  #services.displayManager.enable = true;
+  #services.displayManager.defaultSession = "xfce";
   #services.xserver.desktopManager.xfce.enable = true;
   #services.xserver.excludePackages = [ pkgs.xterm ];
-
-  # Enable the GNOME Desktop Environment.
-  services.displayManager.gdm.enable = true;
-  services.displayManager.gdm.banner = ''
-    Welcome to Atapi's world!
-  '';
-  services.desktopManager.gnome.enable = true;
-  services.gnome.gnome-initial-setup.enable = true;
-  services.gnome.gnome-remote-desktop.enable = true;
-  environment.gnome.excludePackages = with pkgs; [
-    gnome-tour
-    gnome-user-docs
-    gnome-keyring
-    
-  ];
-
-  services.displayManager.defaultSession = "gnome";
-
-
+  
   # Cosmic buggy
   # services.desktopManager.cosmic.enable = true;
   #services.desktopManager.cosmic.xwayland.enable = true;
   #services.displayManager.cosmic-greeter.enable = true; 
 
-  /*
+  # Enable the GNOME Desktop Environment.
+  #services.xserver.displayManager.gdm.enable = true;
+  #services.xserver.desktopManager.gnome.enable = true;
+
   # Plasma6 and wayland
+  /*
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
@@ -103,12 +92,12 @@
     kwalletmanager
   ];
   */
-
+  
   # Configure keymap in X11
-  services.xserver = {
-    xkb.layout = "us";
-    xkb.variant = "";
-  };
+  #services.xserver = {
+  #  xkb.layout = "us";
+  #  xkb.variant = "";
+  #};
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
@@ -156,15 +145,7 @@
     description = "Ganga Ram";
     extraGroups = [ "networkmanager" "wheel" "disk"];
     packages = with pkgs; [
-      git
-      vim
-      binutils
-      rustc
-      cargo
-      vscode-fhs
-      teams-for-linux
-      notepadqq
-      meld
+      gtkterm
     ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfyjcPGIRHEtXZgoF7wImA5gEY6ytIfkBeipz4lwnj6 Ganga.Ram@tii.ae"
@@ -173,7 +154,7 @@
 
   programs = {
     ssh = {
-      # startAgent = true;
+      startAgent = true;
       extraConfig = ''
         host ghaf-net
              user root
@@ -193,52 +174,30 @@
   nixpkgs.config.allowUnfree = true;
   nixpkgs.config.nvidia.acceptLicense = true;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  services.gnome.gnome-keyring.enable = true;
-  services.dbus.enable = true;
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    devenv
     vim 
-    git
     gitFull
     nettools
-    rustc
-    cargo
     firefox
     wget
     google-chrome  
-    plantuml
-    graphviz
-    tilix
-  ] ++ (lib.optionals config.services.desktopManager.gnome.enable  [
-    # Extensions
-    gnomeExtensions.user-themes
-    gnomeExtensions.dash-to-dock
-    gnomeExtensions.appindicator
-    gnomeExtensions.clipboard-indicator
-    gnomeExtensions.caffeine
-    gnomeExtensions.blur-my-shell
-    gnomeExtensions.tiling-assistant
-    gnomeExtensions.gsconnect
-    #xfce.xfce4-panel
-    #xfce.thunar
-    #xfce.xfce4-settings
     /*
+    plasma-theme-switcher
     kdePackages.breeze
     kdePackages.breeze-grub
     kdePackages.breeze-plymouth
     kdePackages.breeze-icons
     kdePackages.audiotube #yt music
-    kdePackages.konsole
     kdePackages.dolphin #File browser
     kdePackages.ghostwriter #md file
     kdePackages.gwenview
     kdePackages.kalk
     kdePackages.yakuake
     */
-  ]);
+  ];
 
   systemd.targets = {
     sleep.enable = false;
@@ -246,17 +205,12 @@
     hibernate.enable = false;
     hybrid-sleep.enable = false;
   };
-  services.tailscale.enable = true;
+  #services.tailscale.enable = true;
 
   systemd.services.sshd = {
     after = [ "multi-user.target" ];
     wants = [ "multi-user.target" ];
   };
-
-  nixpkgs.config.permittedInsecurePackages = [
-    "qtwebengine-5.15.19"
-  ];
-
 
   services.openssh = {
     enable = true;
@@ -269,9 +223,9 @@
     # enable = false;
 	  allowPing = true;
   	allowedTCPPorts = [ 22 445 139 8080 5201 ];
-  	allowedUDPPorts = [ 137 138 8080 5201  config.services.tailscale.port ];
+  	allowedUDPPorts = [ 137 138 8080 5201 ];
   };
 
-  system.stateVersion = "25.05";
+  system.stateVersion = "25.11";
 
 }

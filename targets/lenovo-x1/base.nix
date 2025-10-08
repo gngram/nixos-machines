@@ -18,10 +18,7 @@
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
-  services.tailscale.enable = true;
-
-  networking.hostName = "Vatapi";
-  # networking.wireless.enable = true;
+  networking.hostName = "cosmic";
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -45,11 +42,15 @@
   };
 
   # Enable the X11 windowing system.
-  services.xserver.enable = true;
+  #services.xserver.enable = true;
+  services.displayManager.cosmic-greeter.enable = true;
+  services.desktopManager.cosmic.enable = true;
+
+
 
   # Enable xfce
-  services.displayManager.defaultSession = "xfce";
-  services.xserver.desktopManager.xfce.enable = true;
+  #services.displayManager.defaultSession = "xfce";
+  #services.xserver.desktopManager.xfce.enable = true;
 
   # Enable the GNOME Desktop Environment.
   #services.xserver.displayManager.gdm.enable = true;
@@ -60,32 +61,24 @@
   #services.xserver.desktopManager.plasma5.enable = true;
   
   # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
+  #services.xserver.xkb = {
+  #  layout = "us";
+  #  variant = "";
+  #};
 
+  
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
   # Enable sound with pipewire.
-  services.pulseaudio.enable = false;
+  #services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
   };
-
-  # Enable touchpad support (enabled default in most desktopManager).
-  # services.xserver.libinput.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.gangaram = {
@@ -93,12 +86,7 @@
     description = "Ganga Ram";
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [
-      git
-      vim
-      gtkterm
       binutils
-      rustc
-      cargo
     ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfyjcPGIRHEtXZgoF7wImA5gEY6ytIfkBeipz4lwnj6 Ganga.Ram@tii.ae"
@@ -110,29 +98,33 @@
   environment.systemPackages = with pkgs; [
     devenv
     vim
-    git
     gitFull
     nettools
-    rustc
-    cargo
     firefox
     meld
     vscode
-    qtcreator
     google-chrome
     slack
     teams-for-linux
-    plantuml
-    graphviz
+    #globalprotect-openconnect
+    ghostty
+    gtkterm
+    pdfstudio2024
   ];
+  environment.cosmic.excludePackages = with pkgs; [
+   cosmic-edit
+  ];
+
+  #nixpkgs.config.permittedInsecurePackages = [
+  # "qtwebengine-5.15.19"
+  #];
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
 
   networking.firewall.allowPing = true;
   networking.firewall.allowedTCPPorts = [ 22 445 139 8080 ];
-  networking.firewall.allowedUDPPorts = [ 137 138 8080 config.services.tailscale.port ];
+  networking.firewall.allowedUDPPorts = [ 137 138 8080 ];
  
- system.stateVersion = "24.11";
-
+  system.stateVersion = "25.11";
 }
