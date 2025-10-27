@@ -45,7 +45,8 @@
   #services.xserver.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
   services.desktopManager.cosmic.enable = true;
-
+  programs.direnv.enable = true;
+  programs.direnv.nix-direnv.enable = true;
 
 
   # Enable xfce

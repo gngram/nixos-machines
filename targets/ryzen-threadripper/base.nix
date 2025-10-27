@@ -60,6 +60,8 @@
   environment.cosmic.excludePackages = with pkgs; [
    cosmic-edit
   ];
+  programs.direnv.enable = true;
+  programs.direnv.nix-direnv.enable = true;
 
   # Enable the X11 windowing system.
   #services.xserver.enable = true;
